@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Predictor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <style>
+        
+        .choices__list--multiple .choices__item{
+            display:inline-block;
+            vertical-align:middle;
+            border-radius:20px;
+            padding:4px 10px;
+            font-size:12px;
+            font-weight:500;
+            margin-right:3.75px;
+            margin-bottom:3.75px;
+            background-color:#ff3333;
+            border:1px solid #004a5c;color:#fff;
+            word-break:break-all;
+            box-sizing:border-box
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fc;
+            color: #212529;
+        }
+        h1, h2 {
+            text-align: left;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        form {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        label {
+            font-weight: 600;
+            color: #495057;
+        }
+        select, input {
+            width: 100%;
+            padding: 14px;
+            margin-top: 5px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            background-color: #f8f9fc;
+            color: #495057;
+            outline: none;
+        }
+        select:focus, input:focus {
+            border-color: #007bff;
+            background-color: #ffffff;
+        }
+        .choices__list--dropdown, .choices__list[role="listbox"] {
+            background-color: #f8f9fc !important;
+            color: #495057 !important;
+            border: 1px solid #ddd !important;
+        }
+        
+        .choices__placeholder {
+            color: #adb5bd !important;
+            
+        }
+        
+        
+
+
+        button {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 6px;
+            border: none;
+            padding: 12px;
+            width: 150px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 16px;
+        }
+        .radio-group input[type="radio"] {
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>College Predictor</h1>
+    <form id="predictorForm">
+        <h2>Enter Student Details</h2>
+        <label for="seatType">Select Seat Type:</label>
+        <select id="seatType" multiple>
+        </select>
+
+        <label for="branch">Select Branch:</label>
+        <select id="branch" multiple>
+        </select>
+
+        <label>Filter by:</label>
+        <div class="radio-group">
+            <label><input type="radio" id="percentileOption" name="predictType" value="percentile" checked> Percentile</label>
+            <label><input type="radio" id="rankOption" name="predictType" value="rank"> Rank</label>
+        </div>
+
+        <label for="inputValue">Enter Percentile:</label>
+        <input type="number" id="inputValue" required placeholder="Enter your percentile">
+
+        <button type="button" onclick="redirectToResults()">Submit</button>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+        async function fetchData() {
+            try {
+                const response = await fetch("MHT-CET DATA TEST.json");
+                const jsonData = await response.json();
+                window.excelData = jsonData["MHT-CET College Data"];
+                populateDropdowns(window.excelData);
+            } catch (error) {
+                alert("Failed to load data. Please try again later.");
+                console.error(error);
+            }
+        }
+        function populateDropdowns(data) {
+    const seatTypes = [...new Set(data.map(d => d["Seat Type"]))];
+    const branches = [...new Set(data.map(d => d["Branch"]))];
+
+    seatTypes.unshift("All"); // Add "All" option
+    branches.unshift("All");  // Add "All" option
+
+    fillDropdown("seatType", seatTypes);
+    fillDropdown("branch", branches);
+
+    // Initialize Choices.js with placeholder support
+    const seatChoices = new Choices('#seatType', { 
+        removeItemButton: true, 
+        placeholder: true, 
+        placeholderValue: "Choose an option", 
+        allowHTML: false 
+    });
+
+    const branchChoices = new Choices('#branch', { 
+        removeItemButton: true, 
+        placeholder: true, 
+        placeholderValue: "Choose an option", 
+        allowHTML: false 
+    });
+
+    document.getElementById("seatType").addEventListener("change", function () {
+        handleAllSelection(this, seatChoices);
+        updatePlaceholder(this, seatChoices);
+    });
+
+    document.getElementById("branch").addEventListener("change", function () {
+        handleAllSelection(this, branchChoices);
+        updatePlaceholder(this, branchChoices);
+    });
+}
+
+
+
+function handleAllSelection(selectElement, choicesInstance) {
+    const selectedValues = Array.from(selectElement.selectedOptions).map(opt => opt.value);
+    
+    if (selectedValues.includes("All")) {
+        // If "All" is selected, remove other options
+        choicesInstance.clearStore();
+        choicesInstance.setChoices([{ value: "All", label: "All", selected: true }], "value", "label", true);
+    } else {
+        // Ensure "All" is not selected when other options are chosen
+        const allOption = selectElement.querySelector('option[value="All"]');
+        if (allOption && allOption.selected) {
+            allOption.selected = false;
+        }
+    }
+}
+
+
+
+        function fillDropdown(id, values) {
+            const select = document.getElementById(id);
+            values.forEach(val => {
+                const option = document.createElement("option");
+                option.value = val;
+                option.textContent = val;
+                select.appendChild(option);
+            });
+        }
+
+        function hidePlaceholder(event) {
+            const choicesInstance = event.target.parentNode.choices;
+            if (choicesInstance) {
+                choicesInstance.config.placeholderValue = '';
+            }
+        }
+
+        function getSelectedValues(selectId) {
+            return Array.from(document.getElementById(selectId).selectedOptions).map(option => option.value);
+        }
+
+        function redirectToResults() {
+    let seatTypes = getSelectedValues("seatType");
+    let branches = getSelectedValues("branch");
+    const predictType = document.querySelector('input[name="predictType"]:checked').value;
+    const inputValue = document.getElementById("inputValue").value;
+
+    if (!inputValue) {
+        alert("Please enter a percentile or rank.");
+        return;
+    }
+
+    if (seatTypes.includes("All")) {
+        seatTypes = []; // Empty means all options will be considered
+    }
+    if (branches.includes("All")) {
+        branches = []; // Empty means all options will be considered
+    }
+
+    const queryString = `?seatTypes=${encodeURIComponent(seatTypes.join(","))}&branches=${encodeURIComponent(branches.join(","))}&predictType=${predictType}&inputValue=${inputValue}`;
+    window.location.href = "results.html" + queryString;
+}
+
+
+        fetchData();
+    </script>
+</body>
+</html>
