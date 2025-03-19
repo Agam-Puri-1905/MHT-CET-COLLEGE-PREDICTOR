@@ -82,7 +82,7 @@
 
         // Sort & limit to top 15 results
         filteredData.sort((a, b) => (b["Percentile"] || 0) - (a["Percentile"] || 0));
-        filteredData = filteredData.slice(0, 15);
+        filteredData = filteredData.slice(0, 25);
 
         // Display results in the table
         document.querySelector("tbody").innerHTML = filteredData.length
