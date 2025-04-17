@@ -143,12 +143,16 @@
                 console.error(error);
             }
         }
-        function populateDropdowns(data) {
+      function populateDropdowns(data) {
     const seatTypes = [...new Set(data.map(d => d["Seat Type"]))];
-    const branches = [...new Set(data.map(d => d["Branch"]))];
+    let branches = [...new Set(data.map(d => d["Branch"]))];
 
-    seatTypes.unshift("All"); // Add "All" option
-    branches.unshift("All");  // Add "All" option
+    // Ensure "All" is first
+    branches = branches.filter(branch => branch.toLowerCase() !== "all");
+    branches.sort();
+    branches.unshift("All");
+
+    seatTypes.unshift("All"); // Add "All" to seat types
 
     fillDropdown("seatType", seatTypes);
     fillDropdown("branch", branches);
@@ -162,11 +166,13 @@
     });
 
     const branchChoices = new Choices('#branch', { 
-        removeItemButton: true, 
-        placeholder: true, 
-        placeholderValue: "Choose an option", 
-        allowHTML: false 
-    });
+    removeItemButton: true, 
+    placeholder: true, 
+    placeholderValue: "Choose an option", 
+    allowHTML: false,
+    shouldSort: false // ✅ this line fixes the order issue
+});
+
 
     document.getElementById("seatType").addEventListener("change", function () {
         handleAllSelection(this, seatChoices);
@@ -178,7 +184,6 @@
         updatePlaceholder(this, branchChoices);
     });
 }
-
 
 
 function handleAllSelection(selectElement, choicesInstance) {
