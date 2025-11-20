@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prediction Results</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.16.0/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root{
+      --cs-red:#d22c2c; --cs-ink:#1b1b1b; --cs-muted:#6c757d;
+      --cs-bg:#f7f7f9; --cs-card:#ffffff; --cs-border:#e9ecef;
+      --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--cs-bg);color:var(--cs-ink);font-family:ui-sans-serif,system-ui,"Poppins","Segoe UI",Roboto}
+    .wrap{max-width:1020px;margin:0 auto;padding:24px}
+    h2{margin:0 0 12px; font-size:clamp(22px,2vw+10px,32px)}
+    .pill{display:inline-flex;background:rgba(210,44,44,.08);color:var(--cs-red);border:1px solid rgba(210,44,44,.18);padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px}
+    .card{background:var(--cs-card);border:1px solid var(--cs-border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin:12px 0}
+    .muted{color:var(--cs-muted)}
+    table{width:100%;border-collapse:separate;border-spacing:0;margin-top:10px;overflow:hidden;border-radius:12px}
+    th,td{padding:12px 10px;border-bottom:1px solid var(--cs-border);text-align:left}
+    thead th{background:#fff;font-weight:800}
+    tbody tr:nth-child(even){background:#fcfcfe}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:12px;border:0;cursor:pointer;font-weight:800}
+    .btn-primary{background:var(--cs-red);color:#fff}
+    .btn-primary:hover{filter:brightness(.95)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="pill">Results</div>
+    <h2>Prediction Results</h2>
+
+    <div id="studentHeader" class="card" style="display:none">
+      <p id="studentHello" class="muted" style="margin:0"></p>
+    </div>
+
+    <div class="card">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Institute</th>
+            <th>Branch</th>
+            <th>Seat Type</th>
+            <th>Minimum Rank</th>
+            <th>Percentile</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div style="margin-top:12px">
+        <button class="btn btn-primary" onclick="downloadPDF()">Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LS_DETAILS = "studentDetails";
+
+    function getDetails(){ try{ return JSON.parse(localStorage.getItem(LS_DETAILS)); }catch{ return null; } }
+
+    function requireDetailsOrRedirect(){
+      const det = getDetails();
+      if(!det || !det.name || !det.email || !det.mobile || !det.state || !det.city){
+        alert("Please fill your student details first.");
+        location.replace("index.html");
+        return false;
+      }
+      studentHeader.style.display = "block";
+      studentHello.textContent = `Hi ${det.name} — showing results for your preferences (${det.city}, ${det.state}).`;
+      return true;
+    }
+
+    async function fetchResults(){
+      const params = new URLSearchParams(location.search);
+      let seatTypes = params.get("seatTypes") ? params.get("seatTypes").split(",").filter(Boolean) : [];
+      let branches  = params.get("branches")  ? params.get("branches").split(",").filter(Boolean)  : [];
+      const predictType = params.get("predictType");
+      const inputValue  = parseFloat(params.get("inputValue"));
+
+      try{
+        const response = await fetch("MHT-CET DATA TEST.json");
+        if(!response.ok) throw new Error("Failed to load data.");
+        const json = await response.json();
+        let data = json["MHT-CET College Data"];
+
+        // If no filters passed (i.e., "All"), use all unique values
+        if(seatTypes.length===0) seatTypes = [...new Set(data.map(d=>d["Seat Type"]))];
+        if(branches.length===0)  branches  = [...new Set(data.map(d=>d["Branch"]))];
+
+        let filtered = data.filter(d => seatTypes.includes(d["Seat Type"]) && branches.includes(d["Branch"]));
+
+        if(predictType === "rank"){
+          filtered = filtered.filter(d => d["Rank"] && inputValue <= d["Rank"]);
+        }else{
+          filtered = filtered.filter(d => d["Percentile"] && inputValue >= d["Percentile"]);
+        }
+
+        filtered.sort((a,b)=>(b["Percentile"]||0)-(a["Percentile"]||0));
+        filtered = filtered.slice(0, 15);
+
+        const tbody = document.querySelector("#resultsTable tbody");
+        tbody.innerHTML = filtered.length
+          ? filtered.map(r=>`
+              <tr>
+                <td>${r.Institute}</td>
+                <td>${r.Branch}</td>
+                <td>${r["Seat Type"]}</td>
+                <td>${r["Rank"] ?? "N/A"}</td>
+                <td>${r["Percentile"] ?? "N/A"}</td>
+              </tr>`).join("")
+          : "<tr><td colspan='5'>No results found.</td></tr>";
+      }catch(err){
+        alert("Error loading results: "+err.message);
+        console.error(err);
+      }
+    }
+
+    async function downloadPDF(){
+      try{
+        const pdfResponse = await fetch("JEE Mains College Predictor PDF.pdf");
+        if(!pdfResponse.ok) throw new Error("PDF template file not found");
+        const existingPdfBytes = await pdfResponse.arrayBuffer();
+        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+
+        const pageCount = pdfDoc.getPageCount();
+        const keep = [0, pageCount-1];
+        Array.from({length:pageCount},(_,i)=>i)
+          .filter(i=>!keep.includes(i))
+          .reverse().forEach(i=>pdfDoc.removePage(i));
+
+        const rows = Array.from(document.querySelectorAll("#resultsTable tbody tr"))
+          .map(tr => Array.from(tr.querySelectorAll("td")).map(td=>td.innerText));
+        if(rows.length===0){ alert("No data available to generate PDF."); return; }
+
+        const { jsPDF } = window.jspdf;
+        const batch = 15;
+        const inserts=[];
+        for(let i=0;i<rows.length;i+=batch){
+          const temp = new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
+          temp.setFontSize(14);
+          temp.text("College Prediction Results", 40, 50);
+          temp.autoTable({
+            startY:80,
+            head:[["Institute","Branch","Seat Type","Minimum Rank","Percentile"]],
+            body:rows.slice(i,i+batch),
+            theme:"grid",
+            margin:{left:40,right:40}
+          });
+          const bytes = await temp.output("arraybuffer");
+          const newPdf = await PDFLib.PDFDocument.load(bytes);
+          const [page] = await pdfDoc.copyPages(newPdf,[0]);
+          inserts.push(page);
+        }
+        inserts.forEach((p,idx)=>pdfDoc.insertPage(1+idx,p));
+        const finalBytes = await pdfDoc.save();
+        const blob = new Blob([finalBytes],{type:"application/pdf"});
+        const a = Object.assign(document.createElement("a"), { href:URL.createObjectURL(blob), download:"MHT_CET_College_Predictor.pdf" });
+        a.click();
+      }catch(err){
+        alert("Failed to generate PDF: "+err.message);
+        console.error(err);
+      }
+    }
+
+    if(requireDetailsOrRedirect()){
+      fetchResults();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>College Predictor</title>
+
+  <!-- Choices.js for modern multi-selects -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+  <!-- Inter + Poppins look (clean, student-focused) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Brand palette tuned to your site */
+      --brand: #e6403a;           /* primary red (buttons, accents) */
+      --brand-600:#d8352e;
+      --brand-soft:#fff1f0;       /* soft background tint */
+      --ink:#111827;              /* text */
+      --muted:#6b7280;            /* helper text */
+      --bg:#f7f8fb;               /* page background */
+      --card:#ffffff;             /* cards */
+      --stroke:#e5e7eb;           /* subtle borders */
+      --ring:#cfe2ff;             /* focus halo */
+      --success:#10b981;
+    }
+
+    *{ box-sizing: border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Top bar */
+    .topbar{
+      position:sticky; top:0; z-index:10;
+      background:#fff;
+      border-bottom:1px solid var(--stroke);
+      backdrop-filter: blur(8px);
+    }
+    .topbar-inner{
+      max-width:1200px; margin:0 auto; padding:14px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+    }
+    .brand-badge{
+      display:flex; align-items:center; gap:12px;
+      font-weight:700; color:#1f2937;
+    }
+    .badge{
+      width:34px; height:34px; border-radius:10px;
+      background:var(--brand); color:#fff; display:grid; place-items:center;
+      font-family:Poppins, Inter, sans-serif; font-weight:600;
+      letter-spacing:0.2px;
+      box-shadow:0 6px 20px rgba(230,64,58,.25);
+    }
+    .site-link{
+      margin-left:auto;
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 14px; border-radius:999px;
+      background:var(--brand-soft); color:var(--brand); text-decoration:none; font-weight:600;
+      border:1px solid #ffd6d3;
+    }
+    .site-link:hover{ background:#ffe6e4; }
+
+    /* Shell */
+    .wrap{ max-width:1200px; margin:30px auto; padding:0 20px; }
+    .card{
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      box-shadow:0 20px 60px rgba(16,24,40,.06);
+      padding:26px;
+    }
+
+    .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width: 900px){ .grid-2{ grid-template-columns:1fr; } }
+
+    h1{
+      margin:0 0 18px 0;
+      font-family:Poppins, Inter, sans-serif;
+      font-size:26px; font-weight:700; letter-spacing:.2px;
+    }
+
+    label{ font-weight:600; color:#374151; display:block; margin:10px 0 8px; }
+    input[type="text"],input[type="email"],input[type="tel"],input[type="number"],select{
+      width:100%;
+      padding:13px 14px;
+      border:1px solid var(--stroke);
+      background:#fff;
+      border-radius:10px; font-size:15px; color:#1f2937;
+      outline:none;
+      transition:border .2s, box-shadow .2s, background .2s;
+    }
+    input::placeholder{ color:#9ca3af; }
+    input:focus,select:focus{
+      border-color:#bcd3ff; box-shadow:0 0 0 4px var(--ring);
+      background:#fff;
+    }
+    .help{ font-size:12.5px; color:var(--muted); margin-top:6px; }
+    .error{ color:#dc2626; font-size:13px; margin-top:6px; }
+
+    .btn{
+      appearance:none; border:none; cursor:pointer;
+      padding:12px 16px; border-radius:10px; font-weight:700;
+      transition:.2s transform, .2s box-shadow, .2s background;
+    }
+    .btn-primary{
+      background:var(--brand); color:#fff; box-shadow:0 10px 18px rgba(230,64,58,.25);
+    }
+    .btn-primary:hover{ background:var(--brand-600); transform:translateY(-1px); }
+    .btn-ghost{ background:transparent; color:#0d6efd; }
+    .btn[disabled]{ opacity:.7; cursor:not-allowed; }
+
+    .header-row{
+      display:flex; align-items:center; gap:14px; justify-content:space-between; flex-wrap:wrap;
+    }
+    .greeting{
+      border:1px dashed #fecaca;
+      background:var(--brand-soft);
+      color:#b91c1c; padding:12px 14px;
+      border-radius:10px; margin:10px 0 16px;
+      font-weight:600;
+    }
+    .radio-row{ display:flex; align-items:center; gap:18px; margin-top:4px; }
+    .radio-row label{ margin:0; font-weight:500; color:#1f2937; }
+    .inline{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    @media (max-width: 900px){ .two-col{ grid-template-columns:1fr; } }
+
+    .choices__inner{
+      border-radius:10px !important; border-color:var(--stroke) !important; min-height:48px !important;
+      background:#fff !important;
+    }
+    .choices__list--dropdown{ border-color:var(--stroke) !important; }
+    .choices__list--multiple .choices__item{
+      background:var(--brand); border-color:var(--brand);
+      color:#fff; border-radius:999px; font-weight:600;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-badge">
+        <div class="badge">CS</div>
+        <div>College Predictor</div>
+      </div>
+      <a class="site-link" href="#" onclick="return false;">Concept Simplified</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- STUDENT DETAILS (gate) -->
+    <section id="detailsSection" class="card" style="display:none;">
+      <h1>Enter Student Details</h1>
+      <form id="detailsForm" novalidate>
+        <div class="grid-2">
+          <div>
+            <label for="studentName">Full Name</label>
+            <input id="studentName" type="text" placeholder="e.g., Agam Puri" />
+            <div id="errName" class="error"></div>
+          </div>
+          <div>
+            <label for="studentEmail">Email</label>
+            <input id="studentEmail" type="email" placeholder="e.g., name@example.com" />
+            <div id="errEmail" class="error"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="studentMobile">Mobile Number</label>
+            <input id="studentMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit Indian mobile" />
+            <div class="help">We’ll use this to share prediction updates.</div>
+            <div id="errMobile" class="error"></div>
+          </div>
+          <div>
+            <label for="studentState">State</label>
+            <select id="studentState">
+              <option value="">Select State</option>
+            </select>
+            <div id="errState" class="error"></div>
+          </div>
+        </div>
+
+        <div>
+          <label for="studentCity">City</label>
+          <input id="studentCity" type="text" placeholder="e.g., Pune" />
+          <div id="errCity" class="error"></div>
+        </div>
+
+        <div class="inline" style="margin-top:14px">
+          <button id="saveContinueBtn" class="btn btn-primary" type="submit">Save & Continue</button>
+          <span class="help">By continuing, you consent to store your details for counseling and updates.</span>
+        </div>
+      </form>
+    </section>
+
+    <!-- PREDICTOR -->
+    <section id="predictorSection" class="card" style="display:none;">
+      <div class="header-row">
+        <h1>Find Your Best-Fit Colleges</h1>
+        <button id="editDetailsBtn" class="btn btn-ghost" type="button">Edit details</button>
+      </div>
+
+      <div id="helloBanner" class="greeting" style="display:none;"></div>
+
+      <div class="two-col">
+        <div>
+          <label for="seatType">Seat Type</label>
+          <select id="seatType" multiple></select>
+        </div>
+
+        <div>
+          <label for="branch">Branch</label>
+          <select id="branch" multiple></select>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <label>Filter by</label>
+        <div class="radio-row">
+          <label><input type="radio" name="predictType" value="percentile" checked> Percentile</label>
+          <label><input type="radio" name="predictType" value="rank"> Rank</label>
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label for="inputValue" id="inputValueLabel">Enter Percentile</label>
+        <input id="inputValue" type="number" step="0.01" placeholder="e.g., 96.4" />
+      </div>
+
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" type="button" onclick="redirectToResults()">Show results</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* CONFIG: Google Apps Script URL */
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyt4ySHVQ3i4qI6trhDqGkQuZTMbv6cYkSrr4bFi_yk0RoqjgVGuT1gN6ZW8-lipytYBw/exec"; // e.g. https://script.google.com/macros/s/XXXX/exec
+
+    /* State list */
+    const statesIN = [
+      "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat",
+      "Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra",
+      "Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu",
+      "Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal",
+      "Andaman and Nicobar Islands","Chandigarh",
+      "Dadra and Nagar Haveli and Daman and Diu","Delhi",
+      "Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry"
+    ];
+    function fillStates(){
+      const sel = document.getElementById('studentState');
+      statesIN.forEach(s=>{
+        const o = document.createElement('option');
+        o.value=s; o.textContent=s;
+        sel.appendChild(o);
+      });
+    }
+
+    /* Local storage helpers */
+    const LS_KEY = "studentDetails";
+    const getDetails = () => {
+      try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch { return null; }
+    };
+    const saveDetailsLocal = (d) => localStorage.setItem(LS_KEY, JSON.stringify(d));
+
+    /* Validate details */
+    function validateDetails(){
+      const name   = document.getElementById('studentName').value.trim();
+      const email  = document.getElementById('studentEmail').value.trim();
+      const mobile = document.getElementById('studentMobile').value.trim();
+      const state  = document.getElementById('studentState').value.trim();
+      const city   = document.getElementById('studentCity').value.trim();
+
+      ['errName','errEmail','errMobile','errState','errCity'].forEach(id=>document.getElementById(id).textContent='');
+
+      let ok=true;
+      if(!name){ document.getElementById('errName').textContent='Please enter your name.'; ok=false; }
+      const emailOK=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+      if(!emailOK){ document.getElementById('errEmail').textContent='Please enter a valid email.'; ok=false; }
+      const mobileOK=/^[6-9]\d{9}$/.test(mobile);
+      if(!mobileOK){ document.getElementById('errMobile').textContent='Enter a valid 10-digit Indian mobile number.'; ok=false; }
+      if(!state){ document.getElementById('errState').textContent='Select your state.'; ok=false; }
+      if(!city){ document.getElementById('errCity').textContent='Enter your city.'; ok=false; }
+
+      return ok ? {name,email,mobile,state,city} : null;
+    }
+
+    /* POST to Google Sheet (generic, used for details + prediction) */
+    async function postToSheet(payload, source){
+      const body = JSON.stringify({ ...payload, source, ua:navigator.userAgent });
+      await fetch(WEBAPP_URL, { method:'POST', mode:'no-cors', body });
+      // brief pause gives Apps Script time to append
+      await new Promise(r=>setTimeout(r,400));
+      return true;
+    }
+
+    /* Predictor data + Choices init */
+    let choicesSeat, choicesBranch;
+
+    async function fetchData(){
+      try{
+        const r = await fetch("MHT-CET DATA TEST.json");
+        const j = await r.json();
+        window.excelData = j["MHT-CET College Data"];
+        populateDropdowns(window.excelData);
+      }catch(err){
+        console.error(err);
+        alert("Failed to load data. Please try again later.");
+      }
+    }
+
+    function unique(arr, key){ return [...new Set(arr.map(x=>x[key]))].filter(Boolean); }
+
+    function populateDropdowns(data){
+      const seatTypes = unique(data, "Seat Type");
+      const branches  = unique(data, "Branch");
+
+      // "All" option first, NOT selected by default
+      const seatWithAll   = ["All", ...seatTypes];
+      const branchWithAll = ["All", ...branches];
+
+      initChoices('seatType', seatWithAll, (selected) => handleAllLogic('seatType', choicesSeat, selected));
+      initChoices('branch',  branchWithAll, (selected) => handleAllLogic('branch',  choicesBranch, selected));
+    }
+
+    function initChoices(selectId, values, onChange){
+      const sel = document.getElementById(selectId);
+      sel.innerHTML = "";
+      values.forEach(v=>{
+        const o = document.createElement('option');
+        o.value=v; o.textContent=v;
+        sel.appendChild(o);
+      });
+
+      const instance = new Choices(sel, {
+        removeItemButton:true,
+        allowHTML:false,
+        placeholder:true,
+        placeholderValue: selectId==='seatType' ? "Select seat type(s)" : "Select branch(es)",
+        searchPlaceholderValue: "Search…",
+        itemSelectText:""
+      });
+
+      if(selectId==='seatType') choicesSeat = instance;
+      else choicesBranch = instance;
+
+      sel.addEventListener('change', ()=>{
+        const selected = Array.from(sel.selectedOptions).map(o=>o.value);
+        onChange(selected);
+      });
+    }
+
+    function handleAllLogic(selectId, instance, selectedValues){
+      const hasAll = selectedValues.includes("All");
+
+      if(hasAll && selectedValues.length>1){
+        // keep only "All"
+        instance.removeActiveItems();
+        instance.setChoiceByValue("All");
+        return;
+      }
+
+      if(!hasAll){
+        const sel = document.getElementById(selectId);
+        const allOpt = Array.from(sel.selectedOptions).find(o=>o.value==="All");
+        if(allOpt){ allOpt.selected=false; }
+      }
+    }
+
+    function getSelectedValues(selectId){
+      return Array.from(document.getElementById(selectId).selectedOptions).map(o=>o.value);
+    }
+
+    /* Redirect and log prediction */
+    async function redirectToResults(){
+      const det = getDetails();
+      if(!det){
+        alert("Please fill your student details first.");
+        showDetailsForm(det);
+        return;
+      }
+
+      let seatTypes = getSelectedValues('seatType');
+      let branches  = getSelectedValues('branch');
+
+      // For the sheet we want to know if they chose "All"
+      const seatForSheet   = seatTypes.includes("All") ? ["All"] : seatTypes;
+      const branchForSheet = branches.includes("All") ? ["All"] : branches;
+
+      // For filtering we treat "All" as no-filter
+      if(seatTypes.includes("All")) seatTypes = [];
+      if(branches.includes("All"))  branches  = [];
+
+      const predictType = document.querySelector('input[name="predictType"]:checked').value;
+      const inputValue  = document.getElementById('inputValue').value.trim();
+      if(!inputValue){
+        alert("Please enter a percentile or rank.");
+        return;
+      }
+
+      // Log this prediction (merge student + predictor inputs)
+      try{
+        await postToSheet({
+          ...det,
+          seatTypes: seatForSheet.join(","),
+          branches:  branchForSheet.join(","),
+          predictType,
+          inputValue
+        }, "prediction");
+      }catch(e){
+        // we don't block the user if logging fails
+        console.warn("Could not log prediction", e);
+      }
+
+      const qs =
+        `?seatTypes=${encodeURIComponent(seatTypes.join(","))}` +
+        `&branches=${encodeURIComponent(branches.join(","))}` +
+        `&predictType=${encodeURIComponent(predictType)}` +
+        `&inputValue=${encodeURIComponent(inputValue)}`;
+
+      window.location.href = "results.html" + qs;
+    }
+
+    /* UI toggles */
+    function showPredictor(details){
+      const banner = document.getElementById('helloBanner');
+      banner.textContent = `Hi ${details.name}! We’ll personalize suggestions for ${details.city}, ${details.state}.`;
+      banner.style.display = 'block';
+      document.getElementById('detailsSection').style.display='none';
+      document.getElementById('predictorSection').style.display='block';
+    }
+    function showDetailsForm(prefill){
+      document.getElementById('predictorSection').style.display='none';
+      document.getElementById('detailsSection').style.display='block';
+      if(prefill){
+        document.getElementById('studentName').value   = prefill.name   || "";
+        document.getElementById('studentEmail').value  = prefill.email  || "";
+        document.getElementById('studentMobile').value = prefill.mobile || "";
+        document.getElementById('studentState').value  = prefill.state  || "";
+        document.getElementById('studentCity').value   = prefill.city   || "";
+      }
+    }
+
+    /* Boot */
+    document.addEventListener('DOMContentLoaded', ()=>{
+      fillStates();
+
+      document.querySelectorAll('input[name="predictType"]').forEach(r=>{
+        r.addEventListener('change', ()=>{
+          const t = document.querySelector('input[name="predictType"]:checked').value;
+          const lab = document.getElementById('inputValueLabel');
+          const inp = document.getElementById('inputValue');
+          if(t==='rank'){ lab.textContent='Enter Rank'; inp.placeholder="e.g., 32450"; }
+          else{ lab.textContent='Enter Percentile'; inp.placeholder="e.g., 96.4"; }
+        });
+      });
+
+      const existing = getDetails();
+      if(existing && existing.name && existing.email && existing.mobile && existing.state && existing.city){
+        showPredictor(existing);
+      }else{
+        showDetailsForm(existing);
+      }
+
+      const form = document.getElementById('detailsForm');
+      const btn  = document.getElementById('saveContinueBtn');
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const data = validateDetails();
+        if(!data) return;
+
+        const original = btn.textContent;
+        btn.disabled = true; btn.textContent = "Saving…";
+        try{
+          await postToSheet(data, "details");
+          saveDetailsLocal(data);
+          showPredictor(data);
+        }catch(err){
+          alert("Could not save your details. Please try again.");
+        }finally{
+          btn.disabled = false; btn.textContent = original;
+        }
+      });
+
+      document.getElementById('editDetailsBtn').addEventListener('click', ()=>{
+        showDetailsForm(getDetails() || {});
+      });
+
+      fetchData();
+    });
+  </script>
+</body>
+</html>
